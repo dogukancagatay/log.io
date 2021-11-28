@@ -9,6 +9,8 @@ import { MessageHandlers, ServerConfig } from './types'
 import getLogger from './logger'
 // @ts-ignore
 import SyslogServer from 'syslog-server'
+// @ts-ignore
+import SyslogParser from 'nsyslog-parser'
 
 var logger = getLogger('server')
 
@@ -163,7 +165,10 @@ See README for more examples.
   })
 
   syslogServer.on('message', (value : any) => {
-    broadcastMessage(config, inputs, io, Buffer.from('+msg|syslog|localhost|' + value.message + '\0', 'utf-8'))
+    let log = SyslogParser(value.message)
+    broadcastMessage(config, inputs, io, Buffer.from('+msg|syslog|localhost|'
+      + log.message
+      + '\0', 'utf-8'))
   });
 
   // Start listening for requests
