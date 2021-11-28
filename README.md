@@ -7,7 +7,6 @@ Powered by [node.js](http://nodejs.org) + [socket.io](http://socket.io)
 [![Version](https://img.shields.io/badge/node-%3E%3D%2012-brightgreen)](https://nodejs.org/)
 [![Node](https://img.shields.io/npm/v/log.io)](https://www.npmjs.com/package/log.io)
 
-
 ## How does it work?
 
 A **file input** watches log files for changes, sends new messages to the **server** via TCP, which broadcasts to **browsers** via socket.io.
@@ -48,7 +47,7 @@ Browse to http://localhost:6688
 
 ## Install & run file input
 
-Install via npm
+Install via npm (my forked version cannot be installed this way)
 
 ```
 npm install -g log.io-file-input
@@ -68,7 +67,9 @@ log.io-file-input
 
 ## Server configuration
 
-There are two servers: the message server, which receives TCP messages from message inputs, and the HTTP server, which receives requests from browsers.  By default, the application looks for configuration in `~/.log.io/server.json`, and can be overridden with the environment variable `LOGIO_SERVER_CONFIG_PATH`.
+There are three servers: the message server, which receives TCP messages from message inputs, the HTTP server, which receives requests from browsers, and the syslog server.
+
+By default, the application looks for configuration in `~/.log.io/server.json`, and can be overridden with the environment variable `LOGIO_SERVER_CONFIG_PATH`.
 
 Sample configuration file:
 
@@ -82,6 +83,10 @@ Sample configuration file:
     "port": 6688,
     "host": "127.0.0.1"
   },
+  "syslogServer": {
+    "port": 1514,
+    "host": "127.0.0.1"
+  },
   "debug": false,
   "basicAuth": {
     "realm": "abc123xyz",
@@ -91,6 +96,7 @@ Sample configuration file:
   }
 }
 ```
+
 `basicAuth` and `debug` are both optional keys that can be omitted.
 
 ## File input configuration
@@ -130,7 +136,6 @@ Sample configuration file:
 }
 
 ```
-
 
 ## Server TCP interface
 

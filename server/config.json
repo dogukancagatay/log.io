@@ -7,5 +7,9 @@
   "httpServer": {
     "port": 6688,
     "host": "127.0.0.1"
+  },
+  "syslogServer": {
+    "port": 1514,
+    "host": "127.0.0.1"
   }
 }

@@ -6,6 +6,8 @@ import path from 'path'
 import socketio from 'socket.io'
 import InputRegistry from './inputs'
 import { MessageHandlers, ServerConfig } from './types'
+// @ts-ignore
+import SyslogServer from 'syslog-server'
 
 // File path to UI app build artifacts (static JS/CSS/HTML)
 const UI_BUILD_PATH = process.env.LOGIO_SERVER_UI_BUILD_PATH
@@ -23,6 +25,7 @@ async function handleNewMessage(
   const [mtype, stream, source] = msgParts.slice(0, 3)
   const msg = msgParts.slice(3).join('|')
   const inputName = inputs.add(stream, source)
+
   // Broadcast message to input channel
   io.to(inputName).emit(mtype, {
     inputName,
@@ -110,6 +113,8 @@ async function main(config: ServerConfig): Promise<void> {
   const httpServer = new http.Server(server)
   const io = socketio(httpServer)
   const inputs = new InputRegistry()
+  const syslogServer = new SyslogServer();
+
   if (config.basicAuth) {
     if (config.basicAuth.users && config.basicAuth.realm) {
       server.use(basicAuth({
@@ -151,15 +156,28 @@ See README for more examples.
     })
   })
 
+  syslogServer.on("message", (value : any) => {
+    broadcastMessage(config, inputs, io, Buffer.from("+msg|syslog|localhost|" + value.message + "\0", "utf-8"))
+  });
+
   // Start listening for requests
   messageServer.listen(config.messageServer.port, config.messageServer.host, () => {
     // eslint-disable-next-line no-console
     console.log(`TCP message server listening on port ${config.messageServer.port}`)
+
+    // register syslog input
+    broadcastMessage(config, inputs, io, Buffer.from("+input|syslog|localhost\0", "utf-8"))
   })
+
   httpServer.listen(config.httpServer.port, config.httpServer.host, () => {
     // eslint-disable-next-line no-console
     console.log(`HTTP server listening on port ${config.httpServer.port}`)
   })
+
+  syslogServer.start({port: config.syslogServer.port, address: config.syslogServer.host}, () => {
+    // eslint-disable-next-line no-console
+    console.log(`Syslog server listening on port ${config.syslogServer.port}`)
+  });
 }
 
 export default main

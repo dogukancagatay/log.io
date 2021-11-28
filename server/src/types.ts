@@ -9,6 +9,10 @@ export type ServerConfig = {
     port: number,
     host: string
   },
+  syslogServer: {
+    port: number,
+    host: string
+  },
   debug?: boolean,
   basicAuth?: {
     realm: string,
