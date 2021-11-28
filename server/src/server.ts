@@ -6,8 +6,11 @@ import path from 'path'
 import socketio from 'socket.io'
 import InputRegistry from './inputs'
 import { MessageHandlers, ServerConfig } from './types'
+import getLogger from './logger'
 // @ts-ignore
 import SyslogServer from 'syslog-server'
+
+var logger = getLogger('server')
 
 // File path to UI app build artifacts (static JS/CSS/HTML)
 const UI_BUILD_PATH = process.env.LOGIO_SERVER_UI_BUILD_PATH
@@ -33,11 +36,11 @@ async function handleNewMessage(
     stream,
     source,
   })
+
   // Broadcast ping to all browsers
   io.emit('+ping', { inputName, stream, source })
   if (config.debug) {
-    // eslint-disable-next-line no-console
-    console.log(msgParts.join('|'))
+    logger.debug(msgParts.join('|'))
   }
 }
 
@@ -98,8 +101,7 @@ async function broadcastMessage(
     if (messageHandler) {
       await messageHandler(config, inputs, io, msgParts)
     } else {
-      // eslint-disable-next-line no-console
-      console.error(`Unknown message type: ${msgParts[0]}`)
+      logger.error(`Unknown message type: ${msgParts[0]}`)
     }
   })
 }
@@ -115,6 +117,11 @@ async function main(config: ServerConfig): Promise<void> {
   const inputs = new InputRegistry()
   const syslogServer = new SyslogServer();
 
+  if (config.debug) {
+    logger.level = "debug"
+    logger.debug("Debug enabled")
+  }
+
   if (config.basicAuth) {
     if (config.basicAuth.users && config.basicAuth.realm) {
       server.use(basicAuth({
@@ -122,8 +129,7 @@ async function main(config: ServerConfig): Promise<void> {
         challenge: true,
       }))
     } else {
-      // eslint-disable-next-line no-console
-      console.warn(`
+      logger.warn(`
 WARNING: Unable to enable basic authentication.
 
 Basic auth configuration requires the following keys: 'users', 'realm'.
@@ -156,27 +162,24 @@ See README for more examples.
     })
   })
 
-  syslogServer.on("message", (value : any) => {
-    broadcastMessage(config, inputs, io, Buffer.from("+msg|syslog|localhost|" + value.message + "\0", "utf-8"))
+  syslogServer.on('message', (value : any) => {
+    broadcastMessage(config, inputs, io, Buffer.from('+msg|syslog|localhost|' + value.message + '\0', 'utf-8'))
   });
 
   // Start listening for requests
   messageServer.listen(config.messageServer.port, config.messageServer.host, () => {
-    // eslint-disable-next-line no-console
-    console.log(`TCP message server listening on port ${config.messageServer.port}`)
+    logger.info(`TCP message server listening on port ${config.messageServer.port}`)
 
     // register syslog input
-    broadcastMessage(config, inputs, io, Buffer.from("+input|syslog|localhost\0", "utf-8"))
+    broadcastMessage(config, inputs, io, Buffer.from('+input|syslog|localhost\0', 'utf-8'))
   })
 
   httpServer.listen(config.httpServer.port, config.httpServer.host, () => {
-    // eslint-disable-next-line no-console
-    console.log(`HTTP server listening on port ${config.httpServer.port}`)
+    logger.info(`HTTP server listening on port ${config.httpServer.port}`)
   })
 
   syslogServer.start({port: config.syslogServer.port, address: config.syslogServer.host}, () => {
-    // eslint-disable-next-line no-console
-    console.log(`Syslog server listening on port ${config.syslogServer.port}`)
+    logger.info(`Syslog server listening on port ${config.syslogServer.port}`)
   });
 }
 
